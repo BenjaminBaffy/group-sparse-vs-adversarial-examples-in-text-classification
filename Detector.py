@@ -16,7 +16,7 @@ class Detector():
     self.seed = seed
     self.data = None
     self.dtype = 'val' if use_val else 'test'
-    self.batch_size = 32 if dataset=="imdb" else 64
+    self.batch_size = 16 if dataset=="imdb" else 32
     self.scaler = modules[0]
     self.dim_reducer = modules[1]
     self.estimators = modules[2]
@@ -24,9 +24,9 @@ class Detector():
 
   def get_data(self, pkl_path=None):
     if pkl_path and pkl_path.endswith(".pkl"):
-      dataset = self.loader.get_attack_from_pkl(pkl_path, self.model_wrapper, batch_size=128)
+      dataset = self.loader.get_attack_from_pkl(pkl_path, self.model_wrapper, batch_size=64)
     else:
-      dataset, _ = self.loader.get_attack_from_csv(batch_size=128, dtype=self.dtype, model_wrapper=None)
+      dataset, _ = self.loader.get_attack_from_csv(batch_size=64, dtype=self.dtype, model_wrapper=None)
 
     adv_count = dataset.result_type.value_counts()[1]
     total = len(dataset)

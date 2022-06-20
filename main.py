@@ -2,6 +2,11 @@ import argparse
 import json
 import time
 import pdb
+import os
+import matplotlib as plt
+import numpy as np
+import glob
+import csv
 
 
 parser = argparse.ArgumentParser(description="Detect and defense attacked samples")
@@ -60,10 +65,10 @@ parser.add_argument("--mnli_option", default="matched", type=str,
 args, _ = parser.parse_known_args()
 
 
-from utils.detection import *
-from utils.dataset import *
-from utils.logger import *
-from utils.miscellaneous import *
+import utils.detection as detection
+import utils.dataset as dataset
+import utils.logger as log_module
+import utils.miscellaneous as misc
 from models.wrapper import BertWrapper
 from Detector import Detector
 from AttackLoader import AttackLoader
@@ -78,7 +83,7 @@ else:
 if __name__ == "__main__":
   if not os.path.isdir(args.log_path):
     os.makedirs(args.log_path)
-  logger = Logger(args.log_path)
+  logger = log_module.Logger(args.log_path)
   logger.log.info("Args: "+str(args.__dict__))
 
   with open(args.model_params_path, "r") as r:
@@ -98,21 +103,21 @@ if __name__ == "__main__":
   tokenizer = model_wrapper.tokenizer
   model.eval()
 
-  trainvalset, _, key = get_dataset(args)
+  trainvalset, _, key = dataset.get_dataset(args)
   text_key, testset_key = key
-  trainset, _ = split_dataset(trainvalset, split='trainval', split_ratio=1.0)
+  trainset, _ = dataset.split_dataset(trainvalset, split='trainval', split_ratio=1.0)
 
   logger.log.info(f"Loading train features")
   s_time = time.time()
-  feats = get_train_features(model_wrapper, args, batch_size=256, dataset=trainset, text_key=text_key,
+  feats = detection.get_train_features(model_wrapper, args, batch_size=64, dataset=trainset, text_key=text_key,
                              layer=params['layer_param']['cls_layer'])
   logger.log.info(f"Elapsed time: {time.time()-s_time}")
   feats = feats.numpy()
   s_time = time.time()
-  reduced_feat, labels, reducer, scaler = preprocess_features(feats, params, args, logger)
+  reduced_feat, labels, reducer, scaler = misc.preprocess_features(feats, params, args, logger)
 
-  train_stats, estimators = get_stats(reduced_feat, labels, cov_estim_name=args.cov_estimator, use_shared_cov=params['shared_cov'], params=params)
-  naive_train_stats, naive_estimators = get_stats(reduced_feat, labels, cov_estim_name="None", use_shared_cov=params['shared_cov'])
+  train_stats, estimators = detection.get_stats(reduced_feat, labels, cov_estim_name=args.cov_estimator, use_shared_cov=params['shared_cov'], params=params)
+  naive_train_stats, naive_estimators = detection.get_stats(reduced_feat, labels, cov_estim_name="None", use_shared_cov=params['shared_cov'])
   all_train_stats = [naive_train_stats, train_stats]
   all_estimators = [naive_estimators, estimators]
   logger.log.info(f"Elapsed time for model fitting : {time.time()-s_time}")
