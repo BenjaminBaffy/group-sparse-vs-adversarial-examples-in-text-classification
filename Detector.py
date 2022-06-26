@@ -1,8 +1,12 @@
 import pdb
 
-from utils.detection import *
-from utils.dataset import *
-from utils.miscellaneous import *
+import os
+import numpy as np
+import torch
+
+import utils.detection as detection
+import utils.dataset as datasetutil
+import utils.miscellaneous as misc
 
 
 class Detector:
@@ -56,9 +60,9 @@ class Detector:
         att_result = torch.tensor(testset["result_type"].tolist())
         path_to_gt = os.path.join(self.logger.log_path, "gt.csv")
         if True:
-            save_array(att_result, path_to_gt, append=False)
+            misc.save_array(att_result, path_to_gt, append=False)
 
-        test_features, preds = get_test_features(
+        test_features, preds = detection.get_test_features(
             self.model_wrapper,
             batch_size=self.batch_size,
             dataset=texts,
@@ -90,7 +94,7 @@ class Detector:
                     all_confidences[np.arange(preds.numel()), preds]
                 )
             else:
-                confidence, conf_indices, conf_all = compute_dist(
+                confidence, conf_indices, conf_all = detection.compute_dist(
                     test_features, stats, use_marginal=False
                 )
                 confidence = conf_all[torch.arange(preds.numel()), preds]
@@ -99,7 +103,7 @@ class Detector:
             if num_nans != 0:
                 self.logger.log.info(f"Warning : {num_nans} Nans in confidence")
                 confidence[confidence == -float("inf")] = -1e6
-            roc, pr, tpr_at_fpr, f1, auc = detect_attack(
+            roc, pr, tpr_at_fpr, f1, auc = detection.detect_attack(
                 testset,
                 confidence,
                 fpr_thres,
@@ -117,12 +121,12 @@ class Detector:
     def test_baseline_PPL(self, fpr_thres, pkl_path=None):
         testset = self.get_data()
         texts = testset["text"].tolist()
-        confidence = compute_ppl(texts)
+        confidence = detection.compute_ppl(texts)
         confidence[torch.isnan(confidence)] = 1e6
         confidence[confidence == -float("inf")] = -1e6
         metric_header = ["tpr", "fpr", "f1", "auc"]
         self.logger.log.info("-----Results for Baseline: GPT-2 PPL------")
-        roc, pr, tpr, f1, auc = detect_attack(
+        roc, pr, tpr, f1, auc = detection.detect_attack(
             testset,
             confidence,
             fpr_thres,

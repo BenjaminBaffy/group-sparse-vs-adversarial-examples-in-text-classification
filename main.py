@@ -118,7 +118,7 @@ args, _ = parser.parse_known_args()
 
 
 import utils.detection as detection
-import utils.dataset as dataset
+import utils.dataset as datasetutil
 import utils.logger as log_module
 import utils.miscellaneous as misc
 from models.wrapper import BertWrapper
@@ -157,9 +157,9 @@ if __name__ == "__main__":
     tokenizer = model_wrapper.tokenizer
     model.eval()
 
-    trainvalset, _, key = dataset.get_dataset(args)
+    trainvalset, _, key = datasetutil.get_dataset(args)
     text_key, testset_key = key
-    trainset, _ = dataset.split_dataset(trainvalset, split="trainval", split_ratio=1.0)
+    trainset, _ = datasetutil.split_dataset(trainvalset, split="trainval", split_ratio=1.0)
 
     logger.log.info(f"Loading train features")
     s_time = time.time()
